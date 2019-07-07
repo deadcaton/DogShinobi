@@ -2,6 +2,36 @@
 
 
 
+class ControlState {
+    constructor(){
+        this.up = false;
+        this.down = false;
+        this.left = false;
+        this.right = false;
+        this.hit = false;
+        this.keyMap = new Map([
+            [37, 'left'],
+            [39, 'right'],
+            [38, 'up'],
+            [40, 'down'],
+            [32, 'hit']
+        ]);
+        document.addEventListener('keydown', (event) => this.update(event, true));
+        document.addEventListener('keyup', (event) => this.update(event, false));
+    }
+
+    update(event, pressed) {
+        if(this.keyMap.has(event.keyCode)) {
+            event.preventDefault();
+            event.stopPropagation();
+            this[this.keyMap.get(event.keyCode)] = pressed;
+            console.log(this);
+        }
+    }
+}
+
+
+
 class Scene {
     constructor(game) {
         this.game = game;
@@ -96,8 +126,33 @@ class Menu extends Scene {
         super.init();
     }
 
+    update(time) {
+        if(this.game.control.hit) {
+            this.finish(Scene.GAME_START);
+        }
+    }
+
     render(time) {
+        this.update(time);
         this.game.screen.drawImage(0, 0, 'title');
+        this.game.screen.print(250, 500, 'Нажмите пробел');
+        super.render(time);
+    }
+}
+
+
+
+class GameLevel extends Scene {
+    constructor(game) {
+        super(game);
+    }
+
+    init() {
+        super.init();
+    }
+
+    render(time) {
+        this.game.screen.fill('orange');
         super.render(time);
     }
 }
@@ -186,9 +241,11 @@ class Game {
             player: 'img/player_test.gif',
             title: 'img/title_test.jpg'
         });
+        this.control = new ControlState();
         this.scenes = {
             loading: new Loading(this),
-            menu: new Menu(this)
+            menu: new Menu(this),
+            gameLevel: new GameLevel(this)
         };
         this.currentScene = this.scenes.loading;
         this.currentScene.init();
@@ -198,6 +255,8 @@ class Game {
         switch (status) {
             case Scene.LOADED:
                 return this.scenes.menu;
+            case Scene.GAME_START:
+                return this.scenes.gameLevel;
             default:
                 return this.scenes.menu;
         }
