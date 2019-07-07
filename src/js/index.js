@@ -5,10 +5,23 @@
 class Scene {
     constructor(game) {
         this.game = game;
+        this.status = this.constructor.WORKING;
     }
 
+    static get WORKING() { return 'WORKING'; }
+    static get LOADED() { return 'LOADED'; }
+    static get GAME_START() { return 'GAME_START'; }
+    static get GAME_OVER() { return 'GAME_OVER'; }
+    static get GAME_WIN() { return 'GAME_WIN'; }
+    static get FINISHED() { return 'FINISHED'; }
+
+
     init() {
-        this.isActive = true;
+        this.status = this.constructor.WORKING;
+    }
+
+    finish(status) {
+        this.status = status;
     }
 
     render(time) {
@@ -18,14 +31,73 @@ class Scene {
 
 
 
+class ImageLoader {
+    constructor(imageFiles) {
+        this.imageFiles = imageFiles;
+        this.images = {};
+    }
+
+    load() {
+        const promises = [];
+        for (let name in this.imageFiles) {
+            promises.push(this.loadImage(name, this.imageFiles[name]));
+        }
+        return Promise.all(promises);
+    }
+
+    loadImage(name, src) {
+        return new Promise((resolve) => {
+            const image = new Image();
+            this.images[name] = image;
+            image.onload = () => resolve(name);
+            image.src = src;
+        });
+    }
+}
+
+
+
 class Loading extends Scene {
     constructor(game) {
         super(game);
-        this.nextScene = 'menu';
+        this.loadedAt = 0;
+    }
+
+    init() {
+        super.init();
+        this.loadedAt = 0;
+    }
+
+    update(time) {
+        if(this.loadedAt === 0 && this.game.screen.isImagesLoaded === true) {
+            this.loadedAt = time;
+        }
+        if(this.loadedAt !== 0 && (time - this.loadedAt) > 500) {
+            this.finish(Scene.LOADED);
+        }
     }
 
     render(time){
+        this.update(time);
         this.game.screen.fill('#eee');
+        this.game.screen.print(50, 50, 'Загрузка...');
+        super.render(time);
+    }
+}
+
+
+
+class Menu extends Scene {
+    constructor(game) {
+        super(game);
+    }
+
+    init() {
+        super.init();
+    }
+
+    render(time) {
+        this.game.screen.drawImage(0, 0, 'title');
         super.render(time);
     }
 }
@@ -34,29 +106,74 @@ class Loading extends Scene {
 
 class Screen {
     constructor(width, height) {
+        width = this.screenSizes.defineWidth();
+        height = this.screenSizes.defineHeight();
+
         this.width = width;
         this.height = height;
-        this.canvas = this.createCanvas();
-        this.canvas.width = width;
-        this.canvas.height = height;
+        this.canvas = this.createCanvas(width, height);
         this.context = this.canvas.getContext('2d');
+        this.images = {};
+        this.isImagesLoaded = false;
     }
 
-    createCanvas(){
-        let canvasWrapper = document.getElementById('canvasWrapper'),
-        canvas = canvasWrapper.getElementsByClassName('Canvas')[0];
+    loadImages(imageFiles) {
+        const loader = new ImageLoader(imageFiles);
+        loader.load().then((names) => {
+            this.images = Object.assign(this.images, loader.images);
+            this.isImagesLoaded = true;
+            console.log(names);
+        })
+    }
 
-        if(canvas !== undefined) {
-            return canvas;
+    createCanvas(width, height) {
+        let canvas = document.getElementById('canvas');
+
+        if(canvas === undefined || canvas === null) {
+            canvas = canvasWrapper.createElement('canvas');   
         }
 
-        let newCanvas = canvasWrapper.createElement('canvas');
-        return newCanvas;
+        canvas.width = width;
+        canvas.height = height;
+
+        return canvas;
     }
 
     fill(color) {
         this.context.fillStyle = color;
         this.context.fillRect(0,0,this.width,this.height);
+    }
+
+    print(x, y, text) {
+        this.context.fillStyle = 'red';
+        this.context.font = '22px Georgia';
+        this.context.fillText(text, x, y);
+    }
+
+    drawImage(x, y, imageName) {
+        this.context.drawImage(this.images[imageName], x, y);
+    }
+
+    screenSizes = {
+        defineWidth() {
+            let width = document.body.clientWidth;
+
+            // if(width < ...) {
+            //     // ...
+            // }
+
+            return width;
+        },
+
+        defineHeight() {
+            let height = document.body.clientHeight;
+
+            // if(height < ...) {
+            //     // ...
+            // }
+
+            return height;
+        }
     }
 }
 
@@ -64,17 +181,31 @@ class Screen {
 
 class Game {
     constructor() {
-        this.screen = new Screen(document.body.clientWidth, document.body.clientHeight);
+        this.screen = new Screen();
+        this.screen.loadImages({
+            player: 'img/player_test.gif',
+            title: 'img/title_test.jpg'
+        });
         this.scenes = {
-            loading: new Loading(this)
+            loading: new Loading(this),
+            menu: new Menu(this)
         };
         this.currentScene = this.scenes.loading;
         this.currentScene.init();
     }
 
+    changeScene(status) {
+        switch (status) {
+            case Scene.LOADED:
+                return this.scenes.menu;
+            default:
+                return this.scenes.menu;
+        }
+    }
+
     frame(time) {
-        if(!this.currentScene.isActive){
-            this.currentScene = this.scenes[this.currentScene.nextScene];
+        if(this.currentScene.status !== Scene.WORKING){
+            this.currentScene = this.changeScene(this.currentScene.status);
             this.currentScene.init();
         }
         this.currentScene.render(time);
