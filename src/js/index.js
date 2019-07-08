@@ -2,6 +2,142 @@
 
 
 
+class Sprite {
+    constructor({imageName, sourceX, sourceY, width = 64, height = 64}) {
+        this.imageName = imageName;
+        this.sourceX = sourceX;
+        this.sourceY = sourceY;
+        this.width = width;
+        this.height = height;
+        this.x = 0;
+        this.y = 0;
+    }
+
+    setXY(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+
+
+class SpriteSheet {
+    constructor({imageName, imageWidth, imageHeight, spriteWidth = 64, spriteHeight = 64}){
+        this.imageName = imageName;
+        this.imageWidth = imageWidth;
+        this.imageHeight = imageHeight;
+        this.spriteWidth = spriteWidth;
+        this.spriteHeight = spriteHeight;
+    }
+
+    getAnimation(indexes, speed, repeat = true, autorn = true) {
+        return new Animation({
+            imageName: this.imageName,
+            frames: indexes.map(index => ({sx: this.getSourceX(index), sy: this.getSourceY(index)})),
+            speed: speed,
+            repeat: repeat,
+            autorn: autorn,
+            width: this.spriteWidth,
+            height: this.spriteHeight
+        });
+    }
+
+    getSprite(index) {
+        return new Sprite({
+            imageName: this.imageName,
+            sourceX: this.getSourceX(index),
+            sourceY: this.getSourceY(index),
+            width: this.spriteWidth,
+            height: this.spriteHeight
+        });
+    }
+
+    getSourceX(index) {
+        // Чтобы найти X, необходимо порядковый номер умножить на ширину спрайта.
+        // И получить остаток от деления на ширину листа.
+        // Целя часть от деления - номер строки. Нужно умножить на высоту спрайта, чтобы получить Y.
+        return (--index * this.spriteWidth) % this.imageWidth;
+    }
+
+    getSourceY(index) {
+        return Math.trunc((--index * this.spriteWidth) / this.imageWidth) * this.spriteHeight;
+    }
+}
+
+
+
+class Animation extends Sprite {
+    constructor({imageName, frames, speed, repeat = true, autorn = true, width = 64, height = 64}) {
+        super({
+            imageName: imageName,
+            sourceX: frames[0].sx,
+            sourceY: frames[0].sy,
+            width: width,
+            height: height
+        });
+
+        this.frames = frames;
+        this.speed = speed;
+        this.repeat = repeat;
+        this.running = autorn;
+        this.lastTime = 0;
+        this.currentTime = 0;
+        this.totalFrames = this.frames.length;
+    }
+
+    setFrame(index) {
+        this.currentFrame = index;
+        this.sourceX = this.frames[index].sx;
+        this.sourceY = this.frames[index].sy;
+    }
+
+    run() {
+        this.setFrame(0);
+        this.running = true;
+    }
+
+    stop() {
+        this.running = false;
+    }
+
+    nextFrame() {
+        if((this.currentFrame + 1) === this.totalFrames) {
+            if(this.repeat) {
+                this.setFrame(0);
+                return;
+            }
+            this.stop();
+            return;
+        }
+        this.setFrame(this.currentFrame + 1);
+    }
+
+    update(time) {
+        if(!this.running) {
+            return;
+        }
+        if(this.lastTime === 0) {
+            this.lastTime = time;
+            return;
+        }
+        if((time - this.lastTime) > this.speed) {
+            this.nextFrame();
+            this.lastTime += this.speed;
+        }
+    }
+}
+
+
+
+class TileMap extends Sprite {
+    constructor(props) {
+        super(props);
+        this.hitboxes = props.hitboxes || [];
+    }
+}
+
+
+
 class ControlState {
     constructor(){
         this.up = false;
@@ -25,7 +161,7 @@ class ControlState {
             event.preventDefault();
             event.stopPropagation();
             this[this.keyMap.get(event.keyCode)] = pressed;
-            console.log(this);
+            // console.log(this);
         }
     }
 }
@@ -145,14 +281,30 @@ class Menu extends Scene {
 class GameLevel extends Scene {
     constructor(game) {
         super(game);
+        this.tiles = new SpriteSheet({
+            imageName: 'tiles',
+            imageWidth: 640,
+            imageHeight: 640
+        });
+        // this.neon = this.tiles.getSprite(4);
+        // this.neon.setXY(10, 10);
     }
 
     init() {
         super.init();
+        const mapData = JSON.parse(ajax.Get('./js/maps/map.json'));
+        this.map = this.game.screen.createMap('map', mapData, this.tiles);
+    }
+
+    update(time) {
+        //...
     }
 
     render(time) {
-        this.game.screen.fill('orange');
+        this.update(time);
+        this.game.screen.fill('#000');
+        this.game.screen.drawSprite(this.map);
+        // this.game.screen.drawSprite(this.neon);
         super.render(time);
     }
 }
@@ -177,7 +329,7 @@ class Screen {
         loader.load().then((names) => {
             this.images = Object.assign(this.images, loader.images);
             this.isImagesLoaded = true;
-            console.log(names);
+            // console.log(names);
         })
     }
 
@@ -194,6 +346,49 @@ class Screen {
         return canvas;
     }
 
+    createMap(name, mapData, tileset) {
+        const mapImage = document.createElement('canvas');
+        mapImage.width = mapData.width * mapData.tilewidth;
+        mapImage.height = mapData.height * mapData.tileheight;
+        
+        const mapContext = mapImage.getContext('2d');
+        const hitboxes = [];
+        let row, col;
+        mapData.layers.forEach(layer => {
+            if(layer.type === 'tilelayer') {
+                row = 0;
+                col = 0;
+                layer.data.forEach(index => {
+                    if(index > 0) {
+                        mapContext.drawImage(this.images[tileset.imageName],
+                            tileset.getSourceX(index), tileset.getSourceY(index),
+                            mapData.tilewidth, mapData.tileheight,
+                            col * mapData.tilewidth, row * mapData.tileheight,
+                            mapData.tilewidth, mapData.tileheight);
+                    }
+                    col++;
+                    if(col > (mapData.width - 1)) {
+                        col = 0;
+                        row++;
+                    }
+                });
+            }
+            if(layer.type == "objectgroup") {
+                hitboxes.push(...layer.objects.map(obj => ({x1: obj.x, x2: obj.x + obj.width, y1: obj.y, y2: obj.y + obj.height})));
+            }
+        });
+
+        this.images[name] = mapImage;
+        return new TileMap({
+            imageName: name,
+            sourceX: 0,
+            sourceY: 0,
+            width: mapImage.width,
+            height: mapImage.height,
+            hitboxes: hitboxes
+        });
+    }
+
     fill(color) {
         this.context.fillStyle = color;
         this.context.fillRect(0,0,this.width,this.height);
@@ -207,6 +402,12 @@ class Screen {
 
     drawImage(x, y, imageName) {
         this.context.drawImage(this.images[imageName], x, y);
+    }
+
+    drawSprite(sprite) {
+        this.context.drawImage(this.images[sprite.imageName],
+            sprite.sourceX, sprite.sourceY, sprite.width, sprite.height,
+            sprite.x, sprite.y, sprite.width, sprite.height);
     }
 
     screenSizes = {
@@ -239,7 +440,8 @@ class Game {
         this.screen = new Screen();
         this.screen.loadImages({
             player: 'img/player_test.gif',
-            title: 'img/title_test.jpg'
+            title: 'img/title_test.jpg',
+            tiles: 'img/tiles_test.png'
         });
         this.control = new ControlState();
         this.scenes = {
