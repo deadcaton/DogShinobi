@@ -30,13 +30,13 @@ class SpriteSheet {
         this.spriteHeight = spriteHeight;
     }
 
-    getAnimation(indexes, speed, repeat = true, autorn = true) {
+    getAnimation(indexes, speed, repeat = true, autorun = true) {
         return new Animation({
             imageName: this.imageName,
             frames: indexes.map(index => ({sx: this.getSourceX(index), sy: this.getSourceY(index)})),
             speed: speed,
             repeat: repeat,
-            autorn: autorn,
+            autorun: autorun,
             width: this.spriteWidth,
             height: this.spriteHeight
         });
@@ -67,7 +67,7 @@ class SpriteSheet {
 
 
 class Animation extends Sprite {
-    constructor({imageName, frames, speed, repeat = true, autorn = true, width = 64, height = 64}) {
+    constructor({imageName, frames, speed, repeat = true, autorun = true, width = 64, height = 64}) {
         super({
             imageName: imageName,
             sourceX: frames[0].sx,
@@ -79,9 +79,9 @@ class Animation extends Sprite {
         this.frames = frames;
         this.speed = speed;
         this.repeat = repeat;
-        this.running = autorn;
+        this.running = autorun;
         this.lastTime = 0;
-        this.currentTime = 0;
+        this.currentFrame = 0;
         this.totalFrames = this.frames.length;
     }
 
@@ -92,8 +92,10 @@ class Animation extends Sprite {
     }
 
     run() {
-        this.setFrame(0);
-        this.running = true;
+        if(!this.running) {
+            this.setFrame(0);
+            this.running = true;
+        }
     }
 
     stop() {
@@ -122,7 +124,7 @@ class Animation extends Sprite {
         }
         if((time - this.lastTime) > this.speed) {
             this.nextFrame();
-            this.lastTime += this.speed;
+            this.lastTime += time;
         }
     }
 }
@@ -286,6 +288,9 @@ class GameLevel extends Scene {
             imageWidth: 640,
             imageHeight: 640
         });
+        this.playerTiles = new CharacterSheet({imageName: 'player'});
+        this.player = this.playerTiles.getAnimation('walk');
+        this.player.setXY(100, 10);
         // this.neon = this.tiles.getSprite(4);
         // this.neon.setXY(10, 10);
     }
@@ -297,15 +302,41 @@ class GameLevel extends Scene {
     }
 
     update(time) {
-        //...
+        this.player.update(time);
     }
 
     render(time) {
         this.update(time);
         this.game.screen.fill('#000');
         this.game.screen.drawSprite(this.map);
-        // this.game.screen.drawSprite(this.neon);
+        this.game.screen.drawSprite(this.player);
         super.render(time);
+    }
+}
+
+
+
+class CharacterSheet extends SpriteSheet {
+    constructor({imageName}) {
+        super({
+            imageName: imageName,
+            imageWidth: 128,
+            imageHeight: 64
+        });
+        this.sequences = this.getSequences();
+    }
+
+    getSequences() {
+        const data = JSON.parse(ajax.Get('./js/maps/animations.json'));
+        const sequences = {};
+        data.layers.forEach(layer => {
+            sequences[layer.name] = layer.data.filter(i => i > 0);
+        });
+        return sequences;
+    }
+
+    getAnimation(name, speed = 100, repeat = true, autorun = true) {
+        return super.getAnimation(this.sequences[name], speed, repeat, autorun);
     }
 }
 
@@ -439,7 +470,7 @@ class Game {
     constructor() {
         this.screen = new Screen();
         this.screen.loadImages({
-            player: 'img/player_test.gif',
+            player: 'img/player.png',
             title: 'img/title_test.jpg',
             tiles: 'img/tiles_test.png'
         });
