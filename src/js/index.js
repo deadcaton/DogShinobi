@@ -2,6 +2,108 @@
 
 
 
+class Vector {
+    constructor(direction, speed){
+        this.setDirection(direction, speed);
+    }
+
+    setDirection(direction, speed) {
+        this.direction = direction;
+        this.speed = speed;
+        this.x = 0;
+        this.y = 0;
+
+        switch(direction) {
+            case 'up':
+                this.y = -speed;
+            break;
+            
+            case 'down':
+                this.y = speed;
+            break;
+
+            case 'right':
+                this.x = speed;
+            break;
+
+            case 'left':
+                this.x = -speed;
+            break;
+        }
+    }
+}
+
+
+
+class Body {
+    constructor({imageName, speed}) {
+        this.x = 0;
+        this.y = 0;
+        this.speed = speed;
+        this.velocity = new Vector('down', 0);
+        this.lastTime = 0;
+        this.animations = {};
+
+        const animationSheet = new CharacterSheet({imageName: imageName});
+        'walk_stop,walk_right'.split(',').forEach(name => {
+            this.animations[name] = animationSheet.getAnimation(name);
+        });
+        this.stand('stop');
+    }
+
+    walk(direction) {
+        this.velocity.setDirection(direction, this.speed);
+        this.view = this.animations['walk_' + direction];
+        this.view.run();
+    }
+
+    stand(direction) {
+        this.velocity.setDirection(direction, 0);
+        this.view = this.animations['walk_' + direction];
+        this.view.stop();
+    }
+
+    update(time) {
+        if(this.lastTime == 0) {
+            this.lastTime = time;
+            return;
+        }
+
+        this.x += (time - this.lastTime) * (this.velocity.x / 1000);
+        this.y += (time - this.lastTime) * (this.velocity.y / 1000);
+        this.lastTime = time;
+        this.view.setXY(Math.trunc(this.x), Math.trunc(this.y));
+        this.view.update(time);
+    }
+}
+
+
+
+class Player extends Body {
+    constructor(control) {
+        super({imageName: 'player', speed: 50});
+        this.control = control;
+    }
+
+    update(time) {
+        if(this.control.up) {
+            this.walk('up');
+        } else if(this.control.down) {
+            this.walk('stop');
+        } else if(this.control.left) {
+            this.walk('left');
+        } else if(this.control.right) {
+            this.walk('right');
+        } else {
+            this.stand(this.velocity.direction);
+        }
+
+        super.update(time);
+    }
+}
+
+
+
 class Sprite {
     constructor({imageName, sourceX, sourceY, width = 64, height = 64}) {
         this.imageName = imageName;
@@ -288,11 +390,13 @@ class GameLevel extends Scene {
             imageWidth: 640,
             imageHeight: 640
         });
-        this.playerTiles = new CharacterSheet({imageName: 'player'});
-        this.player = this.playerTiles.getAnimation('walk');
-        this.player.setXY(100, 10);
-        // this.neon = this.tiles.getSprite(4);
-        // this.neon.setXY(10, 10);
+        // this.playerTiles = new CharacterSheet({imageName: 'player'});
+        // this.player = this.playerTiles.getAnimation('walk');
+        // this.player.setXY(100, 10);
+        
+        this.player = new Player(this.game.control);
+        this.player.x = 200;
+        this.player.y = 645;
     }
 
     init() {
@@ -309,7 +413,7 @@ class GameLevel extends Scene {
         this.update(time);
         this.game.screen.fill('#000');
         this.game.screen.drawSprite(this.map);
-        this.game.screen.drawSprite(this.player);
+        this.game.screen.drawSprite(this.player.view);
         super.render(time);
     }
 }
@@ -321,9 +425,11 @@ class CharacterSheet extends SpriteSheet {
         super({
             imageName: imageName,
             imageWidth: 128,
-            imageHeight: 64
+            imageHeight: 128
         });
         this.sequences = this.getSequences();
+        // Высота героя в 2 спрайта (128)
+        this.spriteHeight = 128;
     }
 
     getSequences() {
