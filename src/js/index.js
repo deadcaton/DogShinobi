@@ -2,6 +2,47 @@
 
 
 
+class Camera {
+    constructor({width = 1280, height = 1024, limitX = 50000, limitY = 50000, scrollEdge = 200} = {}){
+        this.x = 0;
+        this.y = 0;
+        this.width = width;
+        this.height = height;
+        this.limitX = limitX;
+        this.limitY = limitY;
+        this.watchObject = false;
+        this.obj = null;
+        this.scrollEdge = scrollEdge;
+    }
+
+    watch(obj) {
+        this.watchObject = true;
+        this.obj = obj;
+    }
+
+    update(time) {
+        if(this.watchObject) {
+            if(this.obj.x > (this.x + this.width - this.scrollEdge)) {
+                this.x = Math.min(this.limitX, this.obj.x - this.width + this.scrollEdge);
+            }
+
+            if(this.obj.x < (this.x + this.scrollEdge)) {
+                this.x = Math.max(0, this.obj.x - this.scrollEdge);
+            }
+
+            if(this.obj.y > (this.y + this.height - this.scrollEdge)) {
+                this.y = Math.min(this.limitY, this.obj.y - this.height + this.scrollEdge);
+            }
+
+            if(this.obj.y < (this.y + this.scrollEdge)) {
+                this.y = Math.max(0, this.obj.y - this.scrollEdge);
+            }
+        }
+    }
+}
+
+
+
 class Vector {
     constructor(direction, speed){
         this.setDirection(direction, speed);
@@ -396,17 +437,26 @@ class GameLevel extends Scene {
         
         this.player = new Player(this.game.control);
         this.player.x = 200;
-        this.player.y = 645;
+        this.player.y = 450;
     }
 
     init() {
         super.init();
         const mapData = JSON.parse(ajax.Get('./js/maps/map.json'));
         this.map = this.game.screen.createMap('map', mapData, this.tiles);
+        this.mainCamera = new Camera({
+            width: this.game.screen.width,
+            height: this.game.screen.height,
+            limitX: this.map.width - this.game.screen.width,
+            limitY: this.map.height - this.game.screen.height
+        });
+        this.mainCamera.watch(this.player);
+        this.game.screen.setCamera(this.mainCamera);
     }
 
     update(time) {
         this.player.update(time);
+        this.mainCamera.update(time);
     }
 
     render(time) {
@@ -460,6 +510,13 @@ class Screen {
         this.context = this.canvas.getContext('2d');
         this.images = {};
         this.isImagesLoaded = false;
+        this.camera = null;
+        this.isCameraSet = false;
+    }
+
+    setCamera(camera) {
+        this.camera = camera;
+        this.isCameraSet = true;
     }
 
     loadImages(imageFiles) {
@@ -543,9 +600,38 @@ class Screen {
     }
 
     drawSprite(sprite) {
+
+        let spriteX = sprite.x;
+        let spriteY = sprite.y;
+
+        if(this.isCameraSet) {
+            spriteX -= this.camera.x;
+            spriteY -= this.camera.y;
+        }
+
+        if(
+            (spriteX >= this.width) ||
+            (spriteY >= this.height) || 
+            ((spriteX + sprite.width) <= 0) ||
+            ((spriteY + sprite.height) <= 0)
+        ) {
+            return;
+        }
+
+        let sourceX = sprite.sourceX + Math.abs(Math.min(0, spriteX));
+        let sourceY = sprite.sourceY + Math.abs(Math.min(0, spriteY));
+        let width = Math.min(this.width, spriteX + sprite.width) - Math.max(0, spriteX);
+        let height = Math.min(this.height, spriteY + sprite.height) - Math.max(0, spriteY);
+
         this.context.drawImage(this.images[sprite.imageName],
-            sprite.sourceX, sprite.sourceY, sprite.width, sprite.height,
-            sprite.x, sprite.y, sprite.width, sprite.height);
+            sourceX, 
+            sourceY, 
+            width, 
+            height,
+            Math.max(0, spriteX), 
+            Math.max(0, spriteY), 
+            width, 
+            height);
     }
 
     screenSizes = {
@@ -579,7 +665,7 @@ class Game {
         this.screen.loadImages({
             player: 'img/player.png',
             title: 'img/title_test.jpg',
-            tiles: 'img/tiles_test.png'
+            tiles: 'img/map_tiles.png'
         });
         this.control = new ControlState();
         this.scenes = {
