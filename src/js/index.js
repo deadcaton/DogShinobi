@@ -40,12 +40,12 @@ class Body {
         this.x = 0;
         this.y = 0;
         this.speed = speed;
-        this.velocity = new Vector('down', 0);
+        this.velocity = new Vector('stop', 0);
         this.lastTime = 0;
         this.animations = {};
 
         const animationSheet = new CharacterSheet({imageName: imageName});
-        'walk_stop,walk_right'.split(',').forEach(name => {
+        'walk_stop,walk_right,walk_left'.split(',').forEach(name => {
             this.animations[name] = animationSheet.getAnimation(name);
         });
         this.stand('stop');
@@ -81,7 +81,7 @@ class Body {
 
 class Player extends Body {
     constructor(control) {
-        super({imageName: 'player', speed: 50});
+        super({imageName: 'player', speed: 300});
         this.control = control;
     }
 
@@ -226,7 +226,7 @@ class Animation extends Sprite {
         }
         if((time - this.lastTime) > this.speed) {
             this.nextFrame();
-            this.lastTime += time;
+            this.lastTime = time;
         }
     }
 }
@@ -424,12 +424,13 @@ class CharacterSheet extends SpriteSheet {
     constructor({imageName}) {
         super({
             imageName: imageName,
-            imageWidth: 128,
-            imageHeight: 128
+            imageWidth: 384,
+            imageHeight: 256
         });
         this.sequences = this.getSequences();
         // Высота героя в 2 спрайта (128)
         this.spriteHeight = 128;
+        this.spriteWidth = 128;
     }
 
     getSequences() {
