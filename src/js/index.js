@@ -84,9 +84,11 @@ class Body {
         this.velocity = new Vector('stop', 0);
         this.lastTime = 0;
         this.animations = {};
+        // TODO: Не статичны. Изменить!
+        this.collisionShape = {x: 50, y: 55, width: 23, height: 28};
 
         const animationSheet = new CharacterSheet({imageName: imageName});
-        'walk_stop,walk_right,walk_left'.split(',').forEach(name => {
+        'walk_stop,walk_right,walk_left,hit'.split(',').forEach(name => {
             this.animations[name] = animationSheet.getAnimation(name);
         });
         this.stand('stop');
@@ -102,6 +104,12 @@ class Body {
         this.velocity.setDirection(direction, 0);
         this.view = this.animations['walk_' + direction];
         this.view.stop();
+    }
+
+    hit(direction) {
+        this.velocity.setDirection(direction, 0);
+        this.view = this.animations[direction];
+        this.view.hit();
     }
 
     update(time) {
@@ -122,7 +130,7 @@ class Body {
 
 class Player extends Body {
     constructor(control) {
-        super({imageName: 'player', speed: 300});
+        super({imageName: 'player', speed: 210});
         this.control = control;
     }
 
@@ -140,6 +148,93 @@ class Player extends Body {
         }
 
         super.update(time);
+    }
+}
+
+
+
+class Collider {
+    constructor() {
+        this.staticShapes = [];
+        this.bodies = [];
+    }
+
+    addStaticShapes(data) {
+        data.layers.forEach(layer => {
+            if(layer.type === 'objectgroup') {
+                this.staticShapes.push(...layer.objects);
+            }
+        });
+    }
+
+    addKinematicBody(body) {
+        this.bodies.push({
+            x: body.x,
+            y: body.y,
+            obj: body
+        });
+    }
+
+    update(time) {
+        this.checkStatic(time);
+    }
+
+    checkStatic(time) {
+        this.bodies.forEach(body => {
+            let oldX = body.x,
+                oldY = body.y,
+                x = body.obj.x,
+                y = body.obj.y;
+
+            // To right
+            if (x > oldX) {
+                this.staticShapes.forEach(shape => {
+                    if (
+                        ((oldX - 1 + body.obj.collisionShape.x + body.obj.collisionShape.width) < shape.x) &&
+                        ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x) &&
+                        ((y + body.obj.collisionShape.y) < (shape.y + shape.height)) &&
+                        ((y + body.obj.collisionShape.y + body.obj.collisionShape.height) > shape.y)
+                    ) {
+                        x = Math.min(x + body.obj.collisionShape.x + body.obj.collisionShape.width, shape.x) -
+                        body.obj.collisionShape.x - body.obj.collisionShape.width;
+                    }
+                });
+            }
+
+            // To left
+            if (x < oldX) {
+                this.staticShapes.forEach(shape => {
+                    if (
+                        ((oldX + 1 + body.obj.collisionShape.x) > (shape.x + shape.width)) &&
+                        ((x + body.obj.collisionShape.x) < (shape.x + shape.width)) &&
+                        ((y + body.obj.collisionShape.y) < (shape.y + shape.height)) &&
+                        ((y + body.obj.collisionShape.y + body.obj.collisionShape.height) > shape.y)
+                    ) {
+                        x = Math.max(x + body.obj.collisionShape.x, shape.x + shape.width) -
+                        body.obj.collisionShape.x;
+                    }
+                });
+            }
+
+            // Up
+            if(y < oldY) {
+                this.staticShapes.forEach( shape => {
+                    if(
+                        ((oldY + 1 + body.obj.collisionShape.y) > (shape.y + shape.height)) &&
+                        ((y + body.obj.collisionShape.y) < (shape.y + shape.height)) &&
+                       ((x + body.obj.collisionShape.x) < (shape.x + shape.width)) &&
+                       ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x)
+                    ) {
+                        y = Math.max(y + body.obj.collisionShape.y, shape.y + shape.height) - body.obj.collisionShape.y;
+                    }
+                });
+            }
+
+            body.x = x;
+            body.y = y;
+            body.obj.x = x;
+            body.obj.y = y;
+        });
     }
 }
 
@@ -437,7 +532,9 @@ class GameLevel extends Scene {
         
         this.player = new Player(this.game.control);
         this.player.x = 200;
-        this.player.y = 450;
+        this.player.y = 520;
+
+        this.collider = new Collider();
     }
 
     init() {
@@ -452,10 +549,14 @@ class GameLevel extends Scene {
         });
         this.mainCamera.watch(this.player);
         this.game.screen.setCamera(this.mainCamera);
+
+        this.collider.addStaticShapes(mapData);
+        this.collider.addKinematicBody(this.player);
     }
 
     update(time) {
         this.player.update(time);
+        this.collider.update(time);
         this.mainCamera.update(time);
     }
 
@@ -474,11 +575,11 @@ class CharacterSheet extends SpriteSheet {
     constructor({imageName}) {
         super({
             imageName: imageName,
-            imageWidth: 384,
-            imageHeight: 256
+            imageWidth: 640,
+            imageHeight: 640
         });
         this.sequences = this.getSequences();
-        // Высота героя в 2 спрайта (128)
+        // Высота героя в 2 спрайта (64)
         this.spriteHeight = 128;
         this.spriteWidth = 128;
     }

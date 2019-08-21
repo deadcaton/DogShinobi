@@ -2,42 +2,54 @@
  "infinite":false,
  "layers":[
         {
-         "data":[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "data":[1, 2, 0, 0, 0],
          "height":1,
-         "id":1,
+         "id":25,
          "name":"walk_stop",
          "opacity":1,
          "type":"tilelayer",
          "visible":false,
-         "width":30,
+         "width":5,
          "x":0,
          "y":0
         }, 
         {
-         "data":[2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "data":[16, 17, 18, 19, 20],
          "height":1,
-         "id":2,
+         "id":26,
+         "name":"hit",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":false,
+         "width":5,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "data":[6, 7, 8, 9, 0],
+         "height":1,
+         "id":27,
          "name":"walk_right",
          "opacity":1,
          "type":"tilelayer",
          "visible":false,
-         "width":30,
+         "width":5,
          "x":0,
          "y":0
         }, 
         {
-         "data":[4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "data":[11, 12, 13, 14, 0],
          "height":1,
-         "id":3,
+         "id":28,
          "name":"walk_left",
          "opacity":1,
          "type":"tilelayer",
-         "visible":true,
-         "width":30,
+         "visible":false,
+         "width":5,
          "x":0,
          "y":0
         }],
- "nextlayerid":4,
+ "nextlayerid":29,
  "nextobjectid":1,
  "orientation":"orthogonal",
  "renderorder":"right-down",
@@ -51,5 +63,5 @@
  "tilewidth":128,
  "type":"map",
  "version":1.2,
- "width":30
+ "width":5
 }
