@@ -3,7 +3,7 @@
 
 
 class Camera {
-    constructor({width = 1280, height = 1024, limitX = 50000, limitY = 50000, scrollEdge = 200} = {}){
+    constructor({ width = 1280, height = 1024, limitX = 50000, limitY = 50000, scrollEdge = 200 } = {}) {
         this.x = 0;
         this.y = 0;
         this.width = width;
@@ -21,20 +21,20 @@ class Camera {
     }
 
     update(time) {
-        if(this.watchObject) {
-            if(this.obj.x > (this.x + this.width - this.scrollEdge)) {
+        if (this.watchObject) {
+            if (this.obj.x > (this.x + this.width - this.scrollEdge)) {
                 this.x = Math.min(this.limitX, this.obj.x - this.width + this.scrollEdge);
             }
 
-            if(this.obj.x < (this.x + this.scrollEdge)) {
+            if (this.obj.x < (this.x + this.scrollEdge)) {
                 this.x = Math.max(0, this.obj.x - this.scrollEdge);
             }
 
-            if(this.obj.y > (this.y + this.height - this.scrollEdge)) {
+            if (this.obj.y > (this.y + this.height - this.scrollEdge)) {
                 this.y = Math.min(this.limitY, this.obj.y - this.height + this.scrollEdge);
             }
 
-            if(this.obj.y < (this.y + this.scrollEdge)) {
+            if (this.obj.y < (this.y + this.scrollEdge)) {
                 this.y = Math.max(0, this.obj.y - this.scrollEdge);
             }
         }
@@ -44,7 +44,7 @@ class Camera {
 
 
 class Vector {
-    constructor(direction, speed){
+    constructor(direction, speed) {
         this.setDirection(direction, speed);
     }
 
@@ -54,26 +54,26 @@ class Vector {
         this.x = 0;
         this.y = 0;
 
-        switch(direction) {
+        switch (direction) {
             case 'up':
                 this.y = -speed;
-            break;
-            
+                break;
+
             case 'down':
                 this.y = speed;
-            break;
+                break;
 
             case 'stop':
                 this.y = speed;
-            break;
+                break;
 
             case 'right':
                 this.x = speed;
-            break;
+                break;
 
             case 'left':
                 this.x = -speed;
-            break;
+                break;
         }
     }
 }
@@ -81,7 +81,7 @@ class Vector {
 
 
 class Body {
-    constructor({imageName, speed}) {
+    constructor({ imageName, speed }) {
         this.x = 0;
         this.y = 0;
         this.speed = speed;
@@ -89,9 +89,9 @@ class Body {
         this.lastTime = 0;
         this.animations = {};
         // TODO: Не статичны. Изменить!
-        this.collisionShape = {x: 50, y: 55, width: 23, height: 28};
+        this.collisionShape = { x: 50, y: 55, width: 23, height: 28 };
 
-        const animationSheet = new CharacterSheet({imageName: imageName});
+        const animationSheet = new CharacterSheet({ imageName: imageName });
         'walk_stop,walk_right,walk_left,hit'.split(',').forEach(name => {
             this.animations[name] = animationSheet.getAnimation(name);
         });
@@ -117,7 +117,7 @@ class Body {
     }
 
     update(time) {
-        if(this.lastTime == 0) {
+        if (this.lastTime == 0) {
             this.lastTime = time;
             return;
         }
@@ -134,20 +134,20 @@ class Body {
 
 class Player extends Body {
     constructor(control) {
-        super({imageName: 'player', speed: 210});
+        super({ imageName: 'player', speed: 210 });
         this.control = control;
     }
 
     update(time) {
-        if(this.control.up) {
+        if (this.control.up) {
             this.walk('up');
-        } else if(this.control.down) {
+        } else if (this.control.down) {
             this.walk('down');
-        } else if(this.control.stop) {
+        } else if (this.control.stop) {
             this.walk('stop');
-        } else if(this.control.left) {
+        } else if (this.control.left) {
             this.walk('left');
-        } else if(this.control.right) {
+        } else if (this.control.right) {
             this.walk('right');
         } else {
             this.stand();
@@ -167,7 +167,7 @@ class Collider {
 
     addStaticShapes(data) {
         data.layers.forEach(layer => {
-            if(layer.type === 'objectgroup') {
+            if (layer.type === 'objectgroup') {
                 this.staticShapes.push(...layer.objects);
             }
         });
@@ -202,7 +202,7 @@ class Collider {
                         ((y + body.obj.collisionShape.y + body.obj.collisionShape.height) > shape.y)
                     ) {
                         x = Math.min(x + body.obj.collisionShape.x + body.obj.collisionShape.width, shape.x) -
-                        body.obj.collisionShape.x - body.obj.collisionShape.width;
+                            body.obj.collisionShape.x - body.obj.collisionShape.width;
                     }
                 });
             }
@@ -217,19 +217,19 @@ class Collider {
                         ((y + body.obj.collisionShape.y + body.obj.collisionShape.height) > shape.y)
                     ) {
                         x = Math.max(x + body.obj.collisionShape.x, shape.x + shape.width) -
-                        body.obj.collisionShape.x;
+                            body.obj.collisionShape.x;
                     }
                 });
             }
 
             // Up
-            if(y < oldY) {
-                this.staticShapes.forEach( shape => {
-                    if(
+            if (y < oldY) {
+                this.staticShapes.forEach(shape => {
+                    if (
                         ((oldY + 1 + body.obj.collisionShape.y) > (shape.y + shape.height)) &&
                         ((y + body.obj.collisionShape.y) < (shape.y + shape.height)) &&
-                       ((x + body.obj.collisionShape.x) < (shape.x + shape.width)) &&
-                       ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x)
+                        ((x + body.obj.collisionShape.x) < (shape.x + shape.width)) &&
+                        ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x)
                     ) {
                         y = Math.max(y + body.obj.collisionShape.y, shape.y + shape.height) - body.obj.collisionShape.y;
                     }
@@ -237,13 +237,13 @@ class Collider {
             }
 
             // Down
-            if(y > oldY) {
-                this.staticShapes.forEach( shape => {
-                    if(
+            if (y > oldY) {
+                this.staticShapes.forEach(shape => {
+                    if (
                         ((oldY - 1 + body.obj.collisionShape.y + body.obj.collisionShape.height) < shape.y) &&
                         ((y + body.obj.collisionShape.y + body.obj.collisionShape.height) > shape.y) &&
-                       ((x + body.obj.collisionShape.x) < (shape.x + shape.width)) &&
-                       ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x)
+                        ((x + body.obj.collisionShape.x) < (shape.x + shape.width)) &&
+                        ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x)
                     ) {
                         y = Math.min(y + body.obj.collisionShape.y + body.obj.collisionShape.height, shape.y) - body.obj.collisionShape.y - body.obj.collisionShape.height;
 
@@ -262,7 +262,7 @@ class Collider {
 
 
 class Sprite {
-    constructor({imageName, sourceX, sourceY, width = 64, height = 64}) {
+    constructor({ imageName, sourceX, sourceY, width = 64, height = 64 }) {
         this.imageName = imageName;
         this.sourceX = sourceX;
         this.sourceY = sourceY;
@@ -281,7 +281,7 @@ class Sprite {
 
 
 class SpriteSheet {
-    constructor({imageName, imageWidth, imageHeight, spriteWidth = 64, spriteHeight = 64}){
+    constructor({ imageName, imageWidth, imageHeight, spriteWidth = 64, spriteHeight = 64 }) {
         this.imageName = imageName;
         this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
@@ -292,7 +292,7 @@ class SpriteSheet {
     getAnimation(indexes, speed, repeat = true, autorun = true) {
         return new Animation({
             imageName: this.imageName,
-            frames: indexes.map(index => ({sx: this.getSourceX(index), sy: this.getSourceY(index)})),
+            frames: indexes.map(index => ({ sx: this.getSourceX(index), sy: this.getSourceY(index) })),
             speed: speed,
             repeat: repeat,
             autorun: autorun,
@@ -326,7 +326,7 @@ class SpriteSheet {
 
 
 class Animation extends Sprite {
-    constructor({imageName, frames, speed, repeat = true, autorun = true, width = 64, height = 64}) {
+    constructor({ imageName, frames, speed, repeat = true, autorun = true, width = 64, height = 64 }) {
         super({
             imageName: imageName,
             sourceX: frames[0].sx,
@@ -351,7 +351,7 @@ class Animation extends Sprite {
     }
 
     run() {
-        if(!this.running) {
+        if (!this.running) {
             this.setFrame(0);
             this.running = true;
         }
@@ -362,8 +362,8 @@ class Animation extends Sprite {
     }
 
     nextFrame() {
-        if((this.currentFrame + 1) === this.totalFrames) {
-            if(this.repeat) {
+        if ((this.currentFrame + 1) === this.totalFrames) {
+            if (this.repeat) {
                 this.setFrame(0);
                 return;
             }
@@ -374,14 +374,14 @@ class Animation extends Sprite {
     }
 
     update(time) {
-        if(!this.running) {
+        if (!this.running) {
             return;
         }
-        if(this.lastTime === 0) {
+        if (this.lastTime === 0) {
             this.lastTime = time;
             return;
         }
-        if((time - this.lastTime) > this.speed) {
+        if ((time - this.lastTime) > this.speed) {
             this.nextFrame();
             this.lastTime = time;
         }
@@ -400,7 +400,7 @@ class TileMap extends Sprite {
 
 
 class ControlState {
-    constructor(){
+    constructor() {
         this.up = false;
         this.down = false;
         this.left = false;
@@ -418,7 +418,7 @@ class ControlState {
     }
 
     update(event, pressed) {
-        if(this.keyMap.has(event.keyCode)) {
+        if (this.keyMap.has(event.keyCode)) {
             event.preventDefault();
             event.stopPropagation();
             this[this.keyMap.get(event.keyCode)] = pressed;
@@ -496,15 +496,15 @@ class Loading extends Scene {
     }
 
     update(time) {
-        if(this.loadedAt === 0 && this.game.screen.isImagesLoaded === true) {
+        if (this.loadedAt === 0 && this.game.screen.isImagesLoaded === true) {
             this.loadedAt = time;
         }
-        if(this.loadedAt !== 0 && (time - this.loadedAt) > 500) {
+        if (this.loadedAt !== 0 && (time - this.loadedAt) > 500) {
             this.finish(Scene.LOADED);
         }
     }
 
-    render(time){
+    render(time) {
         this.update(time);
         this.game.screen.fill('#eee');
         this.game.screen.print(50, 50, 'Загрузка...');
@@ -524,7 +524,7 @@ class Menu extends Scene {
     }
 
     update(time) {
-        if(this.game.control.hit) {
+        if (this.game.control.hit) {
             this.finish(Scene.GAME_START);
         }
     }
@@ -550,7 +550,7 @@ class GameLevel extends Scene {
         // this.playerTiles = new CharacterSheet({imageName: 'player'});
         // this.player = this.playerTiles.getAnimation('walk');
         // this.player.setXY(100, 10);
-        
+
         this.player = new Player(this.game.control);
         this.player.x = 0;
         this.player.y = 813;
@@ -593,7 +593,7 @@ class GameLevel extends Scene {
 
 
 class CharacterSheet extends SpriteSheet {
-    constructor({imageName}) {
+    constructor({ imageName }) {
         super({
             imageName: imageName,
             imageWidth: 640,
@@ -653,8 +653,8 @@ class Screen {
     createCanvas(width, height) {
         let canvas = document.getElementById('canvas');
 
-        if(canvas === undefined || canvas === null) {
-            canvas = canvasWrapper.createElement('canvas');   
+        if (canvas === undefined || canvas === null) {
+            canvas = canvasWrapper.createElement('canvas');
         }
 
         canvas.width = width;
@@ -667,16 +667,16 @@ class Screen {
         const mapImage = document.createElement('canvas');
         mapImage.width = mapData.width * mapData.tilewidth;
         mapImage.height = mapData.height * mapData.tileheight;
-        
+
         const mapContext = mapImage.getContext('2d');
         const hitboxes = [];
         let row, col;
         mapData.layers.forEach(layer => {
-            if(layer.type === 'tilelayer') {
+            if (layer.type === 'tilelayer') {
                 row = 0;
                 col = 0;
                 layer.data.forEach(index => {
-                    if(index > 0) {
+                    if (index > 0) {
                         mapContext.drawImage(this.images[tileset.imageName],
                             tileset.getSourceX(index), tileset.getSourceY(index),
                             mapData.tilewidth, mapData.tileheight,
@@ -684,14 +684,14 @@ class Screen {
                             mapData.tilewidth, mapData.tileheight);
                     }
                     col++;
-                    if(col > (mapData.width - 1)) {
+                    if (col > (mapData.width - 1)) {
                         col = 0;
                         row++;
                     }
                 });
             }
-            if(layer.type == "objectgroup") {
-                hitboxes.push(...layer.objects.map(obj => ({x1: obj.x, x2: obj.x + obj.width, y1: obj.y, y2: obj.y + obj.height})));
+            if (layer.type == "objectgroup") {
+                hitboxes.push(...layer.objects.map(obj => ({ x1: obj.x, x2: obj.x + obj.width, y1: obj.y, y2: obj.y + obj.height })));
             }
         });
 
@@ -708,7 +708,7 @@ class Screen {
 
     fill(color) {
         this.context.fillStyle = color;
-        this.context.fillRect(0,0,this.width,this.height);
+        this.context.fillRect(0, 0, this.width, this.height);
     }
 
     print(x, y, text) {
@@ -726,14 +726,14 @@ class Screen {
         let spriteX = sprite.x;
         let spriteY = sprite.y;
 
-        if(this.isCameraSet) {
+        if (this.isCameraSet) {
             spriteX -= this.camera.x;
             spriteY -= this.camera.y;
         }
 
-        if(
+        if (
             (spriteX >= this.width) ||
-            (spriteY >= this.height) || 
+            (spriteY >= this.height) ||
             ((spriteX + sprite.width) <= 0) ||
             ((spriteY + sprite.height) <= 0)
         ) {
@@ -746,13 +746,13 @@ class Screen {
         let height = Math.min(this.height, spriteY + sprite.height) - Math.max(0, spriteY);
 
         this.context.drawImage(this.images[sprite.imageName],
-            sourceX, 
-            sourceY, 
-            width, 
+            sourceX,
+            sourceY,
+            width,
             height,
-            Math.max(0, spriteX), 
-            Math.max(0, spriteY), 
-            width, 
+            Math.max(0, spriteX),
+            Math.max(0, spriteY),
+            width,
             height);
     }
 
@@ -811,7 +811,7 @@ class Game {
     }
 
     frame(time) {
-        if(this.currentScene.status !== Scene.WORKING){
+        if (this.currentScene.status !== Scene.WORKING) {
             this.currentScene = this.changeScene(this.currentScene.status);
             this.currentScene.init();
         }
