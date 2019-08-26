@@ -63,6 +63,10 @@ class Vector {
                 this.y = speed;
             break;
 
+            case 'stop':
+                this.y = speed;
+            break;
+
             case 'right':
                 this.x = speed;
             break;
@@ -91,7 +95,7 @@ class Body {
         'walk_stop,walk_right,walk_left,hit'.split(',').forEach(name => {
             this.animations[name] = animationSheet.getAnimation(name);
         });
-        this.stand('stop');
+        this.stand();
     }
 
     walk(direction) {
@@ -100,9 +104,9 @@ class Body {
         this.view.run();
     }
 
-    stand(direction) {
-        this.velocity.setDirection(direction, 0);
-        this.view = this.animations['walk_' + direction];
+    stand() {
+        this.velocity.setDirection('stop', 0);
+        this.view = this.animations['walk_stop'];
         this.view.stop();
     }
 
@@ -138,13 +142,15 @@ class Player extends Body {
         if(this.control.up) {
             this.walk('up');
         } else if(this.control.down) {
+            this.walk('down');
+        } else if(this.control.stop) {
             this.walk('stop');
         } else if(this.control.left) {
             this.walk('left');
         } else if(this.control.right) {
             this.walk('right');
         } else {
-            this.stand(this.velocity.direction);
+            this.stand();
         }
 
         super.update(time);
@@ -226,6 +232,21 @@ class Collider {
                        ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x)
                     ) {
                         y = Math.max(y + body.obj.collisionShape.y, shape.y + shape.height) - body.obj.collisionShape.y;
+                    }
+                });
+            }
+
+            // Down
+            if(y > oldY) {
+                this.staticShapes.forEach( shape => {
+                    if(
+                        ((oldY - 1 + body.obj.collisionShape.y + body.obj.collisionShape.height) < shape.y) &&
+                        ((y + body.obj.collisionShape.y + body.obj.collisionShape.height) > shape.y) &&
+                       ((x + body.obj.collisionShape.x) < (shape.x + shape.width)) &&
+                       ((x + body.obj.collisionShape.x + body.obj.collisionShape.width) > shape.x)
+                    ) {
+                        y = Math.min(y + body.obj.collisionShape.y + body.obj.collisionShape.height, shape.y) - body.obj.collisionShape.y - body.obj.collisionShape.height;
+
                     }
                 });
             }
@@ -531,8 +552,8 @@ class GameLevel extends Scene {
         // this.player.setXY(100, 10);
         
         this.player = new Player(this.game.control);
-        this.player.x = 200;
-        this.player.y = 520;
+        this.player.x = 0;
+        this.player.y = 813;
 
         this.collider = new Collider();
     }
