@@ -102,18 +102,27 @@ class Body {
         this.velocity.setDirection(direction, this.speed);
         this.view = this.animations['walk_' + direction];
         this.view.run();
+
+        this.gravity(this.velocity.x);
     }
 
     stand() {
         this.velocity.setDirection('stop', 0);
         this.view = this.animations['walk_stop'];
         this.view.stop();
+
+        this.gravity(this.velocity.x);
     }
 
     hit(direction) {
         this.velocity.setDirection(direction, 0);
         this.view = this.animations[direction];
         this.view.hit();
+    }
+
+    gravity(currentX) {
+        this.velocity.setDirection('down', 350);
+        this.velocity.x = currentX;
     }
 
     update(time) {
@@ -553,7 +562,7 @@ class GameLevel extends Scene {
 
         this.player = new Player(this.game.control);
         this.player.x = 0;
-        this.player.y = 813;
+        this.player.y = 780;
 
         this.collider = new Collider();
     }
