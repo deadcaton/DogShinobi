@@ -55,7 +55,7 @@ class Vector {
         this.y = 0;
 
         switch (direction) {
-            case 'up':
+            case 'jump':
                 this.y = -speed;
                 break;
 
@@ -84,12 +84,17 @@ class Body {
     constructor({ imageName, speed }) {
         this.x = 0;
         this.y = 0;
+        this.oldY = 0;
+        this.oldX = 0;
         this.speed = speed;
         this.velocity = new Vector('stop', 0);
         this.lastTime = 0;
         this.animations = {};
+
+        this.inFlight = true;
+        this.inMove = true;
         // TODO: Не статичны. Изменить!
-        this.collisionShape = { x: 50, y: 55, width: 23, height: 28 };
+        this.collisionShape = { x: 52, y: 46, width: 24, height: 38 };
 
         const animationSheet = new CharacterSheet({ imageName: imageName });
         'walk_stop,walk_right,walk_left,hit'.split(',').forEach(name => {
@@ -103,15 +108,27 @@ class Body {
         this.view = this.animations['walk_' + direction];
         this.view.run();
 
-        this.gravity(this.velocity.x);
+        this.inMove = true;
+    }
+
+    jump(direction) {
+        if (this.velocity.direction !== direction) {
+            if (!this.inFlight) {
+                this.velocity.setDirection(direction, 0);
+                this.y -= 45;
+                this.view = this.animations['walk_stop'];
+                this.view.run();
+
+                this.inFlight = true;
+                this.inMove = true;
+            }
+        }
     }
 
     stand() {
         this.velocity.setDirection('stop', 0);
         this.view = this.animations['walk_stop'];
         this.view.stop();
-
-        this.gravity(this.velocity.x);
     }
 
     hit(direction) {
@@ -121,7 +138,21 @@ class Body {
     }
 
     gravity(currentX) {
-        this.velocity.setDirection('down', 350);
+        if (this.inMove) {
+            if (this.oldY === (this.y + 3)) {
+                this.inFlight = false;
+                if (this.x === this.oldX) {
+                    this.inMove = false;
+                }
+            }
+            else {
+                this.inFlight = true;
+                this.y += 3;
+                this.oldY = this.y;
+            }
+            this.y++;
+        }
+        this.velocity.setDirection('down', 0);
         this.velocity.x = currentX;
     }
 
@@ -131,8 +162,10 @@ class Body {
             return;
         }
 
+        this.oldX = this.x;
         this.x += (time - this.lastTime) * (this.velocity.x / 1000);
         this.y += (time - this.lastTime) * (this.velocity.y / 1000);
+        this.gravity(this.velocity.x);
         this.lastTime = time;
         this.view.setXY(Math.trunc(this.x), Math.trunc(this.y));
         this.view.update(time);
@@ -148,8 +181,8 @@ class Player extends Body {
     }
 
     update(time) {
-        if (this.control.up) {
-            this.walk('up');
+        if (this.control.jump) {
+            this.jump('jump');
         } else if (this.control.down) {
             this.walk('down');
         } else if (this.control.stop) {
@@ -410,7 +443,7 @@ class TileMap extends Sprite {
 
 class ControlState {
     constructor() {
-        this.up = false;
+        this.jump = false;
         this.down = false;
         this.left = false;
         this.right = false;
@@ -418,7 +451,7 @@ class ControlState {
         this.keyMap = new Map([
             [37, 'left'],
             [39, 'right'],
-            [38, 'up'],
+            [38, 'jump'],
             [40, 'down'],
             [32, 'hit']
         ]);
@@ -431,7 +464,6 @@ class ControlState {
             event.preventDefault();
             event.stopPropagation();
             this[this.keyMap.get(event.keyCode)] = pressed;
-            // console.log(this);
         }
     }
 }
